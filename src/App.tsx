@@ -26,8 +26,8 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <EmergencyAlertOverlay />
-        <BrowserRouter>
+          <BrowserRouter>
+            <EmergencyAlertOverlay />
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -89,7 +89,7 @@ const App = () => (
             />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
+          </BrowserRouter>
         </TooltipProvider>
       </NotificationContextProvider>
     </AuthProvider>
