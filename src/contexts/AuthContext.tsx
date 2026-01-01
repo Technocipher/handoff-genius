@@ -47,16 +47,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (!profile) return null;
 
-      // Fetch role
-      const { data: roleData, error: roleError } = await supabase
+      // Fetch roles (user may have multiple, prioritize admin)
+      const { data: rolesData, error: roleError } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', userId)
-        .maybeSingle();
+        .eq('user_id', userId);
 
       if (roleError) {
         console.error('Error fetching role:', roleError);
       }
+
+      // Prioritize admin role if user has multiple roles
+      const isAdmin = rolesData?.some(r => r.role === 'admin');
+      const userRole = isAdmin ? 'admin' : (rolesData?.[0]?.role as 'doctor' | 'admin') || 'doctor';
 
       const userProfile: UserProfile = {
         id: profile.id,
@@ -65,7 +68,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         hospital_id: profile.hospital_id,
         hospital_name: (profile.hospitals as any)?.name || undefined,
         specialty: profile.specialty,
-        role: (roleData?.role as 'doctor' | 'admin') || 'doctor',
+        role: userRole,
       };
 
       return userProfile;
