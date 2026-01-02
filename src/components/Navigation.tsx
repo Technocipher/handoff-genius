@@ -10,7 +10,9 @@ import {
   LogOut, 
   Menu,
   X,
-  Building2
+  Building2,
+  BarChart3,
+  Users
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -32,9 +34,10 @@ const Navigation = () => {
   const doctorNavItems = [
     { path: '/dashboard', label: 'Dashboard', icon: Activity },
     { path: '/create-referral', label: 'New Referral', icon: Send },
-    { path: '/sent-referrals', label: 'Sent Referrals', icon: FileText },
+    { path: '/sent-referrals', label: 'Sent', icon: FileText },
     { path: '/incoming-referrals', label: 'Incoming', icon: Inbox },
-    { path: '/code-lookup', label: 'Code Lookup', icon: Search },
+    { path: '/analytics', label: 'Analytics', icon: BarChart3 },
+    { path: '/doctors', label: 'Directory', icon: Users },
   ];
 
   const adminNavItems = [

@@ -14,6 +14,58 @@ export type Database = {
   }
   public: {
     Tables: {
+      doctor_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          doctor_id: string
+          id: string
+          rating: number
+          referral_id: string | null
+          reviewer_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          doctor_id: string
+          id?: string
+          rating: number
+          referral_id?: string | null
+          reviewer_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          doctor_id?: string
+          id?: string
+          rating?: number
+          referral_id?: string | null
+          reviewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_reviews_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_reviews_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hospitals: {
         Row: {
           address: string | null
@@ -43,28 +95,43 @@ export type Database = {
       }
       profiles: {
         Row: {
+          availability_status: string | null
+          bio: string | null
           created_at: string
           email: string
           full_name: string
           hospital_id: string | null
           id: string
+          phone: string | null
+          preferred_referral_method: string | null
           specialty: string | null
+          years_experience: number | null
         }
         Insert: {
+          availability_status?: string | null
+          bio?: string | null
           created_at?: string
           email: string
           full_name: string
           hospital_id?: string | null
           id: string
+          phone?: string | null
+          preferred_referral_method?: string | null
           specialty?: string | null
+          years_experience?: number | null
         }
         Update: {
+          availability_status?: string | null
+          bio?: string | null
           created_at?: string
           email?: string
           full_name?: string
           hospital_id?: string | null
           id?: string
+          phone?: string | null
+          preferred_referral_method?: string | null
           specialty?: string | null
+          years_experience?: number | null
         }
         Relationships: [
           {
