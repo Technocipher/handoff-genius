@@ -16,6 +16,8 @@ import IncomingReferrals from "./pages/IncomingReferrals";
 import ReferralDetail from "./pages/ReferralDetail";
 import CodeLookup from "./pages/CodeLookup";
 import AdminDashboard from "./pages/AdminDashboard";
+import Analytics from "./pages/Analytics";
+import DoctorDirectory from "./pages/DoctorDirectory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -85,6 +87,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analytics"
+              element={
+                <ProtectedRoute>
+                  <Analytics />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/doctors"
+              element={
+                <ProtectedRoute>
+                  <DoctorDirectory />
                 </ProtectedRoute>
               }
             />
