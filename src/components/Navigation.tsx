@@ -70,40 +70,41 @@ const Navigation = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-0.5">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                  'flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap',
                   isActive(item.path)
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                 )}
               >
-                <item.icon className="w-4 h-4" />
-                {item.label}
+                <item.icon className="w-4 h-4 flex-shrink-0" />
+                <span className="hidden xl:inline">{item.label}</span>
               </Link>
             ))}
           </div>
 
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden lg:flex items-center gap-2">
             <NotificationCenter />
             {currentUser && (
-              <div className="text-right">
-                <p className="text-sm font-medium text-foreground">{currentUser.full_name}</p>
-                <p className="text-xs text-muted-foreground">{currentUser.hospital_name || 'No hospital'}</p>
+              <div className="text-right hidden xl:block">
+                <p className="text-sm font-medium text-foreground truncate max-w-[120px]">{currentUser.full_name}</p>
+                <p className="text-xs text-muted-foreground truncate max-w-[120px]">{currentUser.hospital_name || 'No hospital'}</p>
               </div>
             )}
             <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
+              <LogOut className="w-4 h-4" />
+              <span className="hidden xl:inline ml-2">Logout</span>
             </Button>
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden flex items-center">
+          <div className="lg:hidden flex items-center gap-2">
+            <NotificationCenter />
             <Button
               variant="ghost"
               size="icon"
@@ -117,7 +118,7 @@ const Navigation = () => {
 
       {/* Mobile Navigation */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-border bg-card animate-fade-in">
+        <div className="lg:hidden border-t border-border bg-card animate-fade-in">
           <div className="px-4 py-3 space-y-1">
             {currentUser && (
               <div className="pb-3 mb-3 border-b border-border">
