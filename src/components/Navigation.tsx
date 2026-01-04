@@ -14,7 +14,8 @@ import {
   BarChart3,
   Users,
   BookTemplate,
-  ClipboardList
+  ClipboardList,
+  MessageSquare
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -38,6 +39,7 @@ const Navigation = () => {
     { path: '/create-referral', label: 'New Referral', icon: Send },
     { path: '/sent-referrals', label: 'Sent', icon: FileText },
     { path: '/incoming-referrals', label: 'Incoming', icon: Inbox },
+    { path: '/messages', label: 'Messages', icon: MessageSquare },
     { path: '/templates', label: 'Templates', icon: BookTemplate },
     { path: '/followups', label: 'Follow-ups', icon: ClipboardList },
     { path: '/analytics', label: 'Analytics', icon: BarChart3 },
