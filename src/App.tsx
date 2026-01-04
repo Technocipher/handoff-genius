@@ -20,6 +20,7 @@ import Analytics from "./pages/Analytics";
 import DoctorDirectory from "./pages/DoctorDirectory";
 import ReferralTemplates from "./pages/ReferralTemplates";
 import PatientFollowups from "./pages/PatientFollowups";
+import Messages from "./pages/Messages";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -121,6 +122,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <PatientFollowups />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/messages"
+              element={
+                <ProtectedRoute>
+                  <Messages />
                 </ProtectedRoute>
               }
             />
