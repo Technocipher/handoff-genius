@@ -15,7 +15,8 @@ import {
   Users,
   BookTemplate,
   ClipboardList,
-  MessageSquare
+  MessageSquare,
+  Settings
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -104,6 +105,16 @@ const Navigation = () => {
                 <p className="text-xs text-muted-foreground truncate max-w-[120px]">{currentUser.hospital_name || 'No hospital'}</p>
               </div>
             )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link to="/profile">
+                  <Button variant="ghost" size="icon">
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>Profile Settings</TooltipContent>
+            </Tooltip>
             <Button variant="ghost" size="sm" onClick={handleLogout}>
               <LogOut className="w-4 h-4" />
               <span className="hidden xl:inline ml-2">Logout</span>
@@ -150,6 +161,19 @@ const Navigation = () => {
                 {item.label}
               </Link>
             ))}
+            <Link
+              to="/profile"
+              onClick={() => setMobileMenuOpen(false)}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                isActive('/profile')
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              )}
+            >
+              <Settings className="w-4 h-4" />
+              Profile Settings
+            </Link>
             <Button 
               variant="ghost" 
               className="w-full justify-start mt-2" 

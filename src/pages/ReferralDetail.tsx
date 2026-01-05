@@ -27,7 +27,8 @@ import {
   AlertTriangle,
   Loader2,
   Paperclip,
-  MessageCircle
+  MessageCircle,
+  Printer
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -143,19 +144,160 @@ const ReferralDetail = () => {
     }
   };
 
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error('Please allow popups to print the referral');
+      return;
+    }
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Referral - ${referral.patient.name}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px; color: #111; }
+          .header { border-bottom: 2px solid #111; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; }
+          .header h1 { font-size: 24px; margin-bottom: 4px; }
+          .header .subtitle { color: #666; }
+          .header .ids { text-align: right; }
+          .header .ids p { font-size: 12px; color: #666; }
+          .header .ids .code { font-family: monospace; font-weight: bold; font-size: 14px; }
+          .badges { display: flex; gap: 12px; margin-bottom: 24px; }
+          .badge { padding: 8px 16px; border-radius: 4px; font-size: 14px; }
+          .badge-status { background: #f0f0f0; }
+          .badge-routine { background: #d1fae5; }
+          .badge-urgent { background: #fef3c7; }
+          .badge-emergency { background: #fee2e2; }
+          section { margin-bottom: 24px; }
+          section h2 { font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-bottom: 12px; }
+          .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+          .field label { font-size: 12px; color: #666; display: block; margin-bottom: 4px; }
+          .field p { font-weight: 500; }
+          .route { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+          .route-item { border-left: 4px solid; padding-left: 12px; }
+          .route-from { border-color: #3b82f6; }
+          .route-to { border-color: #22c55e; }
+          .text-box { background: #f9fafb; padding: 12px; border-radius: 4px; border: 1px solid #e5e7eb; white-space: pre-wrap; }
+          .text-box.error { background: #fef2f2; border-color: #fecaca; }
+          footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #ddd; text-align: center; font-size: 12px; color: #666; }
+          @media print { body { padding: 20px; } @page { margin: 1cm; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <h1>Medical Referral Document</h1>
+            <p class="subtitle">MedRefer - Hospital Referral System</p>
+          </div>
+          <div class="ids">
+            <p>Referral ID</p>
+            <p class="code">${referral.id.slice(0, 8).toUpperCase()}</p>
+            ${referral.patientCode ? `<p style="margin-top: 8px;">Patient Code</p><p class="code">${referral.patientCode}</p>` : ''}
+          </div>
+        </div>
+
+        <div class="badges">
+          <span class="badge badge-status">Status: ${referral.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+          <span class="badge badge-${referral.urgency}">Urgency: ${referral.urgency.charAt(0).toUpperCase() + referral.urgency.slice(1)}</span>
+        </div>
+
+        <section>
+          <h2>Patient Information</h2>
+          <div class="grid">
+            <div class="field"><label>Name</label><p>${referral.patient.name}</p></div>
+            <div class="field"><label>Age</label><p>${referral.patient.age} years</p></div>
+            <div class="field"><label>Contact</label><p>${referral.patient.contact}</p></div>
+            <div class="field"><label>Medical ID</label><p>${referral.patient.medicalId}</p></div>
+          </div>
+        </section>
+
+        <section>
+          <h2>Referral Route</h2>
+          <div class="route">
+            <div class="route-item route-from">
+              <label style="font-size: 12px; color: #666; text-transform: uppercase;">Referring Hospital</label>
+              <p style="font-weight: 500;">${referral.fromHospitalName}</p>
+              <p style="color: #666;">${referral.fromDoctorName}</p>
+            </div>
+            <div class="route-item route-to">
+              <label style="font-size: 12px; color: #666; text-transform: uppercase;">Receiving Hospital</label>
+              <p style="font-weight: 500;">${referral.toHospitalName}</p>
+              <p style="color: #666;">${referral.assignedDoctorName || 'Awaiting assignment'}</p>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2>Specialty Required</h2>
+          <p style="font-weight: 500;">${referral.specialty}</p>
+        </section>
+
+        <section>
+          <h2>Medical Information</h2>
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">Medical Summary</label>
+            <div class="text-box">${referral.medicalSummary}</div>
+          </div>
+          <div>
+            <label style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">Reason for Referral</label>
+            <div class="text-box">${referral.reasonForReferral}</div>
+          </div>
+          ${referral.rejectionReason ? `
+            <div style="margin-top: 16px;">
+              <label style="font-size: 12px; color: #dc2626; display: block; margin-bottom: 4px;">Rejection Reason</label>
+              <div class="text-box error">${referral.rejectionReason}</div>
+            </div>
+          ` : ''}
+        </section>
+
+        <section>
+          <h2>Timeline</h2>
+          <div class="grid">
+            <div class="field"><label>Created</label><p>${format(new Date(referral.createdAt), 'MMMM d, yyyy h:mm a')}</p></div>
+            <div class="field"><label>Last Updated</label><p>${format(new Date(referral.updatedAt), 'MMMM d, yyyy h:mm a')}</p></div>
+          </div>
+        </section>
+
+        <footer>
+          <p>This document was generated from MedRefer on ${format(new Date(), 'MMMM d, yyyy h:mm a')}</p>
+          <p style="margin-top: 4px;">This is an official medical referral document. Please handle with confidentiality.</p>
+        </footer>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    printWindow.onload = () => {
+      printWindow.print();
+    };
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate(-1)}
-          className="mb-6"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
+        <div className="flex items-center justify-between mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => handlePrint()}
+          >
+            <Printer className="w-4 h-4 mr-2" />
+            Print / Export
+          </Button>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
