@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDirectMessages, Conversation } from '@/hooks/useDirectMessages';
 import { useDoctors } from '@/hooks/useDoctors';
@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Send, MessageSquare, Plus, Search, User } from 'lucide-react';
+import { Loader2, Send, MessageSquare, Plus, Search, User, Check, CheckCheck } from 'lucide-react';
 import { format } from 'date-fns';
 
 const Messages = () => {
@@ -22,9 +22,17 @@ const Messages = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [newConversationOpen, setNewConversationOpen] = useState(false);
   const [selectedNewDoctor, setSelectedNewDoctor] = useState<string>('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { messages, conversations, loading, sending, sendMessage } = useDirectMessages(selectedDoctorId);
+  const { messages, conversations, loading, messagesLoading, sending, sendMessage } = useDirectMessages(selectedDoctorId);
   const { doctors, loading: doctorsLoading } = useDoctors();
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
   const filteredConversations = conversations.filter(
     conv => conv.doctor_name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -35,9 +43,12 @@ const Messages = () => {
   const handleSend = async () => {
     if (!selectedDoctorId || !newMessage.trim()) return;
 
-    const success = await sendMessage(selectedDoctorId, newMessage);
-    if (success) {
-      setNewMessage('');
+    const messageToSend = newMessage;
+    setNewMessage(''); // Clear immediately for fast UX
+
+    const success = await sendMessage(selectedDoctorId, messageToSend);
+    if (!success) {
+      setNewMessage(messageToSend); // Restore if failed
     }
   };
 
@@ -53,6 +64,12 @@ const Messages = () => {
       setSelectedDoctorId(selectedNewDoctor);
       setNewConversationOpen(false);
       setSelectedNewDoctor('');
+    }
+  };
+
+  const handleSelectConversation = (doctorId: string) => {
+    if (doctorId !== selectedDoctorId) {
+      setSelectedDoctorId(doctorId);
     }
   };
 
@@ -76,7 +93,7 @@ const Messages = () => {
 
       <div className="h-[calc(100vh-4rem)] flex">
         {/* Sidebar - Conversations List */}
-        <div className="w-80 border-r border-border flex flex-col">
+        <div className="w-80 border-r border-border flex flex-col bg-card">
           <div className="p-4 border-b border-border space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-lg flex items-center gap-2">
@@ -141,14 +158,16 @@ const Messages = () => {
                 {filteredConversations.map(conv => (
                   <button
                     key={conv.doctor_id}
-                    onClick={() => setSelectedDoctorId(conv.doctor_id)}
-                    className={`w-full p-4 text-left hover:bg-accent/50 transition-colors ${
-                      selectedDoctorId === conv.doctor_id ? 'bg-accent' : ''
+                    onClick={() => handleSelectConversation(conv.doctor_id)}
+                    className={`w-full p-4 text-left transition-all duration-150 ${
+                      selectedDoctorId === conv.doctor_id 
+                        ? 'bg-primary/10 border-l-2 border-l-primary' 
+                        : 'hover:bg-accent/50'
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarFallback className="bg-primary/10 text-primary">
+                      <Avatar className="h-10 w-10 flex-shrink-0">
+                        <AvatarFallback className={`${selectedDoctorId === conv.doctor_id ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
                           {conv.doctor_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                         </AvatarFallback>
                       </Avatar>
@@ -156,7 +175,7 @@ const Messages = () => {
                         <div className="flex items-center justify-between">
                           <p className="font-medium truncate">{conv.doctor_name}</p>
                           {conv.unread_count > 0 && (
-                            <Badge variant="default" className="ml-2">
+                            <Badge variant="default" className="ml-2 bg-primary">
                               {conv.unread_count}
                             </Badge>
                           )}
@@ -180,13 +199,13 @@ const Messages = () => {
         </div>
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col bg-background">
           {selectedDoctorId ? (
             <>
               {/* Chat Header */}
-              <div className="p-4 border-b border-border flex items-center gap-3">
+              <div className="p-4 border-b border-border flex items-center gap-3 bg-card">
                 <Avatar className="h-10 w-10">
-                  <AvatarFallback className="bg-primary/10 text-primary">
+                  <AvatarFallback className="bg-primary text-primary-foreground">
                     {(selectedConversation?.doctor_name || selectedDoctor?.full_name || 'U')
                       .split(' ')
                       .map(n => n[0])
@@ -194,7 +213,7 @@ const Messages = () => {
                       .slice(0, 2)}
                   </AvatarFallback>
                 </Avatar>
-                <div>
+                <div className="flex-1">
                   <p className="font-medium">
                     {selectedConversation?.doctor_name || selectedDoctor?.full_name || 'Doctor'}
                   </p>
@@ -207,7 +226,11 @@ const Messages = () => {
 
               {/* Messages */}
               <ScrollArea className="flex-1 p-4">
-                {messages.length === 0 ? (
+                {messagesLoading ? (
+                  <div className="h-full flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  </div>
+                ) : messages.length === 0 ? (
                   <div className="h-full flex items-center justify-center">
                     <div className="text-center text-muted-foreground">
                       <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
@@ -216,39 +239,49 @@ const Messages = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {messages.map(msg => {
                       const isOwn = msg.sender_id === currentUser?.id;
                       return (
                         <div
                           key={msg.id}
-                          className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                          className={`flex ${isOwn ? 'justify-end' : 'justify-start'} animate-fade-in`}
                         >
                           <div
-                            className={`max-w-[70%] rounded-lg p-3 ${
+                            className={`max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm ${
                               isOwn
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted'
+                                ? `bg-primary text-primary-foreground ${msg.pending ? 'opacity-70' : ''}`
+                                : 'bg-card border border-border'
                             }`}
                           >
                             <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
-                            <p
-                              className={`text-xs mt-1 ${
-                                isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                              }`}
-                            >
-                              {format(new Date(msg.created_at), 'h:mm a')}
-                            </p>
+                            <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-end' : ''}`}>
+                              <p
+                                className={`text-xs ${
+                                  isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                                }`}
+                              >
+                                {format(new Date(msg.created_at), 'h:mm a')}
+                              </p>
+                              {isOwn && (
+                                msg.pending ? (
+                                  <Check className="w-3 h-3 text-primary-foreground/50" />
+                                ) : (
+                                  <CheckCheck className="w-3 h-3 text-primary-foreground/70" />
+                                )
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
                     })}
+                    <div ref={messagesEndRef} />
                   </div>
                 )}
               </ScrollArea>
 
               {/* Message Input */}
-              <div className="p-4 border-t border-border">
+              <div className="p-4 border-t border-border bg-card">
                 <div className="flex gap-2">
                   <Textarea
                     placeholder="Type a message..."
@@ -258,14 +291,22 @@ const Messages = () => {
                     className="min-h-[44px] max-h-32 resize-none"
                     rows={1}
                   />
-                  <Button onClick={handleSend} disabled={sending || !newMessage.trim()}>
-                    {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  <Button 
+                    onClick={handleSend} 
+                    disabled={sending || !newMessage.trim()}
+                    className="px-4"
+                  >
+                    {sending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
                   </Button>
                 </div>
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center bg-muted/30">
               <div className="text-center text-muted-foreground">
                 <User className="w-16 h-16 mx-auto mb-4 opacity-50" />
                 <p className="text-lg font-medium">Select a conversation</p>
