@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Trash2 } from 'lucide-react';
+import { Send, Bot, User, Loader2, Trash2, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { ChatMessage } from '@/hooks/useAIChat';
+import { useVoice } from '@/hooks/useVoice';
 
 interface AIChatInterfaceProps {
   messages: ChatMessage[];
@@ -13,6 +14,9 @@ interface AIChatInterfaceProps {
   onClear: () => void;
   placeholder?: string;
   quickActions?: { label: string; message: string }[];
+  onFirstOpen?: () => void;
+  speakResponses?: boolean;
+  onSpeakResponsesChange?: (enabled: boolean) => void;
 }
 
 const AIChatInterface = ({
@@ -22,16 +26,55 @@ const AIChatInterface = ({
   onClear,
   placeholder = 'Type your message...',
   quickActions = [],
+  onFirstOpen,
+  speakResponses = true,
+  onSpeakResponsesChange,
 }: AIChatInterfaceProps) => {
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastMessageIdRef = useRef<string | null>(null);
+  const hasCalledFirstOpenRef = useRef(false);
+
+  const handleTranscript = (text: string) => {
+    if (text.trim()) {
+      onSendMessage(text.trim());
+    }
+  };
+
+  const { isListening, isSpeaking, isSupported, startListening, stopListening, speak, stopSpeaking } = useVoice({
+    onTranscript: handleTranscript,
+  });
+
+  // Call onFirstOpen only once
+  useEffect(() => {
+    if (!hasCalledFirstOpenRef.current && onFirstOpen) {
+      hasCalledFirstOpenRef.current = true;
+      onFirstOpen();
+    }
+  }, [onFirstOpen]);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Speak new assistant messages when they're complete
+  useEffect(() => {
+    if (!speakResponses || messages.length === 0) return;
+
+    const lastMessage = messages[messages.length - 1];
+    if (
+      lastMessage.role === 'assistant' &&
+      lastMessage.status === 'sent' &&
+      lastMessage.content &&
+      lastMessage.id !== lastMessageIdRef.current
+    ) {
+      lastMessageIdRef.current = lastMessage.id;
+      speak(lastMessage.content);
+    }
+  }, [messages, speakResponses, speak]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +86,21 @@ const AIChatInterface = ({
   const handleQuickAction = (message: string) => {
     if (isLoading) return;
     onSendMessage(message);
+  };
+
+  const toggleVoiceInput = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
+
+  const toggleSpeakResponses = () => {
+    if (isSpeaking) {
+      stopSpeaking();
+    }
+    onSpeakResponsesChange?.(!speakResponses);
   };
 
   return (
@@ -58,11 +116,27 @@ const AIChatInterface = ({
             <p className="text-xs text-muted-foreground">AI-powered help</p>
           </div>
         </div>
-        {messages.length > 0 && (
-          <Button variant="ghost" size="sm" onClick={onClear}>
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        )}
+        <div className="flex items-center gap-1">
+          {isSupported && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleSpeakResponses}
+              title={speakResponses ? 'Mute voice' : 'Enable voice'}
+            >
+              {speakResponses ? (
+                <Volume2 className="w-4 h-4 text-primary" />
+              ) : (
+                <VolumeX className="w-4 h-4" />
+              )}
+            </Button>
+          )}
+          {messages.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={onClear}>
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Messages */}
@@ -143,12 +217,29 @@ const AIChatInterface = ({
       {/* Input */}
       <form onSubmit={handleSubmit} className="p-3 border-t border-border">
         <div className="flex gap-2">
+          {isSupported && (
+            <Button
+              type="button"
+              variant={isListening ? 'destructive' : 'outline'}
+              size="icon"
+              onClick={toggleVoiceInput}
+              disabled={isLoading}
+              title={isListening ? 'Stop listening' : 'Voice input'}
+              className={cn(isListening && 'animate-pulse')}
+            >
+              {isListening ? (
+                <MicOff className="w-4 h-4" />
+              ) : (
+                <Mic className="w-4 h-4" />
+              )}
+            </Button>
+          )}
           <Input
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={placeholder}
-            disabled={isLoading}
+            placeholder={isListening ? 'Listening...' : placeholder}
+            disabled={isLoading || isListening}
             className="flex-1"
           />
           <Button type="submit" size="icon" disabled={!input.trim() || isLoading}>

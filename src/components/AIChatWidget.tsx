@@ -1,19 +1,26 @@
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { MessageCircle, X, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAIChat } from '@/hooks/useAIChat';
+import { useVoice } from '@/hooks/useVoice';
 import AIChatInterface from '@/components/AIChatInterface';
 import { cn } from '@/lib/utils';
+
+const WELCOME_MESSAGE = "Welcome to our streamlined medical referral system, created by Dickson Emmanuel and Mohammed. How can we assist you today? We're here to help";
 
 const AIChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'patient' | 'doctor'>('patient');
   const [patientCode, setPatientCode] = useState('');
   const [isCodeVerified, setIsCodeVerified] = useState(false);
+  const [speakResponses, setSpeakResponses] = useState(true);
+  const hasPlayedWelcomeRef = useRef(false);
   const { currentUser } = useAuth();
+
+  const { speak } = useVoice({});
 
   // Patient chat without code
   const generalChat = useAIChat({ mode: 'general' });
@@ -35,6 +42,23 @@ const AIChatWidget = () => {
     setIsCodeVerified(false);
     patientChat.clearMessages();
   };
+
+  const handleOpen = () => {
+    setIsOpen(true);
+    // Play welcome message on first open
+    if (!hasPlayedWelcomeRef.current && speakResponses) {
+      hasPlayedWelcomeRef.current = true;
+      // Small delay to let the widget animate open
+      setTimeout(() => {
+        speak(WELCOME_MESSAGE);
+      }, 500);
+    }
+  };
+
+  const handleFirstOpen = useCallback(() => {
+    // This is called from AIChatInterface on mount
+    // Welcome is now handled in handleOpen
+  }, []);
 
   const patientQuickActions = [
     { label: 'Check status', message: 'What is the current status of my referral?' },
@@ -58,7 +82,7 @@ const AIChatWidget = () => {
     <>
       {/* Floating button */}
       <Button
-        onClick={() => setIsOpen(true)}
+        onClick={handleOpen}
         className={cn(
           'fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg z-50 transition-all',
           isOpen && 'scale-0 opacity-0'
@@ -94,6 +118,9 @@ const AIChatWidget = () => {
             onClear={doctorChat.clearMessages}
             placeholder="Ask about referrals, patients..."
             quickActions={doctorQuickActions}
+            onFirstOpen={handleFirstOpen}
+            speakResponses={speakResponses}
+            onSpeakResponsesChange={setSpeakResponses}
           />
         ) : (
           // Unauthenticated - show patient interface with tabs
@@ -134,6 +161,9 @@ const AIChatWidget = () => {
                       onClear={generalChat.clearMessages}
                       placeholder="Ask about referrals..."
                       quickActions={generalQuickActions}
+                      onFirstOpen={handleFirstOpen}
+                      speakResponses={speakResponses}
+                      onSpeakResponsesChange={setSpeakResponses}
                     />
                   </div>
                 </div>
@@ -156,6 +186,9 @@ const AIChatWidget = () => {
                       onClear={patientChat.clearMessages}
                       placeholder="Ask about your referral..."
                       quickActions={patientQuickActions}
+                      onFirstOpen={handleFirstOpen}
+                      speakResponses={speakResponses}
+                      onSpeakResponsesChange={setSpeakResponses}
                     />
                   </div>
                 </div>
