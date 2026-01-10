@@ -10,8 +10,14 @@ export const useVoice = (options: UseVoiceOptions = {}) => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const recognitionRef = useRef<any>(null);
-  const synthRef = useRef<SpeechSynthesis | null>(null);
+  const onTranscriptRef = useRef(onTranscript);
+
+  // Keep callback ref updated
+  useEffect(() => {
+    onTranscriptRef.current = onTranscript;
+  }, [onTranscript]);
 
   useEffect(() => {
     // Check for speech recognition support
@@ -22,9 +28,9 @@ export const useVoice = (options: UseVoiceOptions = {}) => {
       recognitionRef.current.interimResults = false;
       recognitionRef.current.lang = language;
       
-      recognitionRef.current.onresult = (event) => {
+      recognitionRef.current.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
-        onTranscript?.(transcript);
+        onTranscriptRef.current?.(transcript);
         setIsListening(false);
       };
 
@@ -38,21 +44,19 @@ export const useVoice = (options: UseVoiceOptions = {}) => {
     }
 
     // Check for speech synthesis support
-    if ('speechSynthesis' in window) {
-      synthRef.current = window.speechSynthesis;
-    }
-
-    setIsSupported(!!(SpeechRecognition && synthRef.current));
+    const hasSynthesis = 'speechSynthesis' in window;
+    setIsSupported(!!(SpeechRecognition || hasSynthesis));
+    setIsReady(true);
 
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.abort();
       }
-      if (synthRef.current) {
-        synthRef.current.cancel();
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
       }
     };
-  }, [language, onTranscript]);
+  }, [language]);
 
   const startListening = useCallback(() => {
     if (recognitionRef.current && !isListening) {
@@ -74,26 +78,41 @@ export const useVoice = (options: UseVoiceOptions = {}) => {
   }, [isListening]);
 
   const speak = useCallback((text: string) => {
-    if (synthRef.current) {
-      // Cancel any ongoing speech
-      synthRef.current.cancel();
-
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = language;
-      utterance.rate = 1;
-      utterance.pitch = 1;
-
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
-
-      synthRef.current.speak(utterance);
+    if (!('speechSynthesis' in window)) {
+      console.warn('Speech synthesis not supported');
+      return;
     }
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = language;
+    utterance.rate = 1;
+    utterance.pitch = 1;
+
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = (e) => {
+      console.error('Speech error:', e);
+      setIsSpeaking(false);
+    };
+
+    // Chrome requires voices to be loaded first
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      const englishVoice = voices.find(v => v.lang.startsWith('en'));
+      if (englishVoice) {
+        utterance.voice = englishVoice;
+      }
+    }
+
+    window.speechSynthesis.speak(utterance);
   }, [language]);
 
   const stopSpeaking = useCallback(() => {
-    if (synthRef.current) {
-      synthRef.current.cancel();
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
       setIsSpeaking(false);
     }
   }, []);
@@ -102,6 +121,7 @@ export const useVoice = (options: UseVoiceOptions = {}) => {
     isListening,
     isSpeaking,
     isSupported,
+    isReady,
     startListening,
     stopListening,
     speak,

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { MessageCircle, X, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +20,7 @@ const AIChatWidget = () => {
   const hasPlayedWelcomeRef = useRef(false);
   const { currentUser } = useAuth();
 
-  const { speak } = useVoice({});
+  const { speak, isReady } = useVoice({});
 
   // Patient chat without code
   const generalChat = useAIChat({ mode: 'general' });
@@ -30,6 +30,18 @@ const AIChatWidget = () => {
 
   // Doctor chat (authenticated)
   const doctorChat = useAIChat({ mode: 'doctor' });
+
+  // Play welcome message when chat opens for first time
+  useEffect(() => {
+    if (isOpen && isReady && !hasPlayedWelcomeRef.current && speakResponses) {
+      hasPlayedWelcomeRef.current = true;
+      // Small delay to ensure speech synthesis is ready
+      const timer = setTimeout(() => {
+        speak(WELCOME_MESSAGE);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, isReady, speakResponses, speak]);
 
   const handleVerifyCode = () => {
     if (patientCode.trim()) {
@@ -45,19 +57,11 @@ const AIChatWidget = () => {
 
   const handleOpen = () => {
     setIsOpen(true);
-    // Play welcome message on first open
-    if (!hasPlayedWelcomeRef.current && speakResponses) {
-      hasPlayedWelcomeRef.current = true;
-      // Small delay to let the widget animate open
-      setTimeout(() => {
-        speak(WELCOME_MESSAGE);
-      }, 500);
-    }
   };
 
   const handleFirstOpen = useCallback(() => {
     // This is called from AIChatInterface on mount
-    // Welcome is now handled in handleOpen
+    // Welcome is now handled via useEffect
   }, []);
 
   const patientQuickActions = [

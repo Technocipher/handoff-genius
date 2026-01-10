@@ -65,14 +65,21 @@ const AIChatInterface = ({
     if (!speakResponses || messages.length === 0) return;
 
     const lastMessage = messages[messages.length - 1];
+    
+    // Only speak when the assistant message is complete (status = 'sent') and has content
+    // Also check that we haven't already spoken this message
     if (
       lastMessage.role === 'assistant' &&
       lastMessage.status === 'sent' &&
       lastMessage.content &&
+      lastMessage.content.length > 0 &&
       lastMessage.id !== lastMessageIdRef.current
     ) {
       lastMessageIdRef.current = lastMessage.id;
-      speak(lastMessage.content);
+      // Small delay to ensure content is fully rendered
+      setTimeout(() => {
+        speak(lastMessage.content);
+      }, 100);
     }
   }, [messages, speakResponses, speak]);
 
