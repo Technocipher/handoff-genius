@@ -26,7 +26,7 @@ import {
   Shield
 } from 'lucide-react';
 import SecurityLogViewer from '@/components/SecurityLogViewer';
-import IPBlockManager from '@/components/IPBlockManager';
+
 import { Navigate } from 'react-router-dom';
 import { Database } from '@/integrations/supabase/types';
 
@@ -787,14 +787,7 @@ const AdminDashboard = () => {
 
           {/* Security Tab */}
           <TabsContent value="security" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="lg:col-span-2">
-                <SecurityLogViewer />
-              </div>
-              <div className="lg:col-span-2">
-                <IPBlockManager />
-              </div>
-            </div>
+            <SecurityLogViewer />
           </TabsContent>
         </Tabs>
       </main>
